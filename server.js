@@ -12,10 +12,10 @@ const crypto = require('crypto');
 const PORT = parseInt(process.env.PORT, 10) || 9009;
 const ROOT = __dirname;
 const INDEX = 'index.html';
-const MAX_PLAYERS = 50;          // Reduced for better performance on free tier
+const MAX_PLAYERS = 100;
 const TICK_MS = 33;            // ~30 state broadcasts / second (faster for smoother gameplay)
 const IDLE_KICK_MS = 20000;    // no state from a joined player for this long -> removed
-const WORLD = { w: 2200 * 2, h: 1500 * 2 };  // Smaller world for better performance
+const WORLD = { w: 2200 * 4, h: 1500 * 4 };
 
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
