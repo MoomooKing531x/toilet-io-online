@@ -12,10 +12,10 @@ const crypto = require('crypto');
 const PORT = parseInt(process.env.PORT, 10) || 9009;
 const ROOT = __dirname;
 const INDEX = 'index.html';
-const MAX_PLAYERS = 100;
-const TICK_MS = 66;            // ~15 state broadcasts / second
+const MAX_PLAYERS = 50;          // Reduced for better performance on free tier
+const TICK_MS = 33;            // ~30 state broadcasts / second (faster for smoother gameplay)
 const IDLE_KICK_MS = 20000;    // no state from a joined player for this long -> removed
-const WORLD = { w: 2200 * 4, h: 1500 * 4 };
+const WORLD = { w: 2200 * 2, h: 1500 * 2 };  // Smaller world for better performance
 
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
@@ -35,7 +35,9 @@ const server = http.createServer((req, res) => {
   }
   fs.readFile(file, (err, data) => {
     if (err) { res.writeHead(404); return res.end('Not found'); }
-    res.writeHead(200, { 'Content-Type': MIME[ext], 'Cache-Control': 'no-cache' });
+    // Enable caching for static assets to reduce load
+    const cacheControl = ext === '.html' ? 'no-cache' : 'public, max-age=3600';
+    res.writeHead(200, { 'Content-Type': MIME[ext], 'Cache-Control': cacheControl });
     res.end(data);
   });
 });
