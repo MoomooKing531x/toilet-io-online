@@ -11,7 +11,7 @@ const crypto = require('crypto');
 
 const PORT = parseInt(process.env.PORT, 10) || 9009;
 const ROOT = __dirname;
-const INDEX = 'toilet_io_official.html';
+const INDEX = 'index.html';
 const MAX_PLAYERS = 100;
 const TICK_MS = 66;            // ~15 state broadcasts / second
 const IDLE_KICK_MS = 20000;    // no state from a joined player for this long -> removed
