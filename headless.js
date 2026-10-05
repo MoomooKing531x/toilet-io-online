@@ -17,6 +17,7 @@ function stub() {
       if (k === 'querySelectorAll') return () => [];
       if (k === 'complete') return false;
       if (k === 'getBoundingClientRect') return () => ({ left: 0, top: 0, width: 1000, height: 1000 });
+      if (k === 'getComputedStyle') return () => ({});
       return p;
     },
     set() { return true; },
@@ -58,6 +59,7 @@ exports.start = function (htmlPath, onConnection) {
     location: { protocol: 'http:', host: 'localhost', hostname: 'localhost' },
     innerWidth: 1000, innerHeight: 1000, devicePixelRatio: 1,
     addEventListener: noop, removeEventListener: noop, matchMedia: () => stub(),
+    getComputedStyle: () => ({}),
     Image: class { set src(v) {} get complete() { return false; } get naturalWidth() { return 0; } },
     Audio: class { play() { return Promise.resolve(); } pause() {} load() {} addEventListener() {} set src(v) {} },
     AudioContext: class {}, WebSocket: FakeWS, Path2D: class {},
