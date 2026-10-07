@@ -1670,7 +1670,7 @@ let upgradePanelAutoShowUntil = 0;
 
 // Bot lifespan and naming
 let externalBotNames = []; // names loaded from file
-let botMaxPlaytimeLengths = [900000, 1800000, 3600000, 7200000, 10800000]; // 15min, 30min, 1hr, 2hr, 3hr
+let botMaxPlaytimeLengths = [900000, 1800000, 3600000, 7200000, 10800000]; // 15min, 30min, 1hr, 2hr, 3hr (Bots play this long then leave)
 
 // Bot name categories - 8 categories with 50 names each (400 total unique names)
 
@@ -3257,8 +3257,8 @@ function updateBotPopulation(){
 
   // Check if bots are enabled by admin
   if(!botsEnabled){
-    // Remove all bots if disabled
-    const aliveBots = entities.filter(e => e.isBot && e.alive);
+    // Remove all bots if disabled (but let natural lifecycle still finish AFK periods)
+    const aliveBots = entities.filter(e => e.isBot && e.alive && !e.isAFKBeforeLeave);
     for(const bot of aliveBots){
       bot.alive = false;
       bot.respawnAt = performance.now() + 999999999;
@@ -5073,11 +5073,13 @@ function update(dt){
         e.afkStartTime = now;
         e.afkDuration = 10000 + Math.random() * 20000; // 10-30 seconds
         e.vx = 0; e.vy = 0; // stop moving
+        logEvent(`Bot <b>${e.name}</b> is leaving soon (AFK)`);
         continue;
       }
       // Check if AFK period is over
       if(now - e.afkStartTime >= e.afkDuration){
         e.alive = false; // actually leave now
+        logEvent(`Bot <b>${e.name}</b> left the game`);
       }
     }
   }
@@ -6114,17 +6116,33 @@ window.adminCommand = function(cmd){
     console.log('Bots ENABLED - bots will respawn to normal levels');
     toast('Bots ENABLED');
   } else if(cmd === 'bots status'){
+    const aliveBots = entities.filter(e => e.isBot && e.alive);
+    const afkBots = entities.filter(e => e.isBot && e.isAFKBeforeLeave);
     console.log('Bots enabled:', botsEnabled);
-    console.log('Current bot count:', entities.filter(e => e.isBot && e.alive).length);
+    console.log('Current bot count:', aliveBots.length);
+    console.log('Bots in AFK-before-leave:', afkBots.length);
+    console.log('Target bot count:', getTargetBotCount());
+  } else if(cmd === 'bots info'){
+    // Show detailed info about all bots
+    const aliveBots = entities.filter(e => e.isBot && e.alive);
+    console.log('=== BOT INFO ===');
+    console.log('Total alive bots:', aliveBots.length);
+    aliveBots.forEach((bot, i) => {
+      const timeLeft = bot.willLeaveAt ? Math.round((bot.willLeaveAt - performance.now()) / 60000) : 'N/A';
+      const status = bot.isAFKBeforeLeave ? 'LEAVING SOON' : 'ACTIVE';
+      console.log(`${i+1}. ${bot.name} - ${status} - ${timeLeft}min left`);
+    });
   } else {
     console.log('Available commands:');
     console.log('  adminCommand("bots off") - Disable all bots');
     console.log('  adminCommand("bots on") - Enable bots');
     console.log('  adminCommand("bots status") - Check bot status');
+    console.log('  adminCommand("bots info") - Show detailed bot info');
   }
 };
 
 console.log('Admin system loaded. Join with name "' + ADMIN_NAME + '" to use commands.');
+console.log('Bot lifecycle: bots play for 15min-3hr, then AFK 10-30sec before leaving. New bots replace them.');
 </script>
 <script>
 /* ===================================================================
