@@ -1530,6 +1530,10 @@ const MIN_BOTS = 20;
 const MAX_BOTS = 30;
 const BOT_CHANGE_INTERVAL = 600000; // 10 minutes in ms
 
+// Admin bot control system
+let botsEnabled = true;
+const ADMIN_NAME = 'J@(*EH)*#H)*RH';
+
 // Bot expression system
 let botEmotePermissions = []; // array of 7 bot IDs that can use emotes
 let nextEmotePermissionRotate = 0; // when to rotate permissions (every 30min)
@@ -2239,32 +2243,6 @@ function removeDynamicBot(){
     botToRemove.alive = false;
     botToRemove.respawnAt = performance.now() + 999999999; // never respawn
   }
-}
-
-// Dynamically adjust bot population
-function updateBotPopulation(){
-  const now = performance.now();
-  if(now < nextBotPopulationChangeAt) return; // wait for next change time
-  
-  const aliveBots = entities.filter(e => e.isBot && e.alive).length;
-  
-  // Decide the new target bot count (between 20-30, can vary by 1-3 bots)
-  const variation = Math.floor(Math.random() * 4) - 1; // -1, 0, 1, or 2
-  targetBotCount = Math.max(MIN_BOTS, Math.min(MAX_BOTS, 25 + variation));
-  
-  // Add or remove bots to reach target
-  if(aliveBots < targetBotCount){
-    // Add 1-2 bots
-    const toAdd = Math.min(2, targetBotCount - aliveBots);
-    for(let i = 0; i < toAdd; i++) addDynamicBot();
-  } else if(aliveBots > targetBotCount){
-    // Remove 1-2 bots
-    const toRemove = Math.min(2, aliveBots - targetBotCount);
-    for(let i = 0; i < toRemove; i++) removeDynamicBot();
-  }
-  
-  // Schedule next change in ~10 minutes
-  nextBotPopulationChangeAt = now + BOT_CHANGE_INTERVAL + (Math.random() * 120000 - 60000); // ±1 min variance
 }
 
 function initWorld(){
@@ -3276,13 +3254,24 @@ function updateBotPopulation(){
   const now = performance.now();
   const currentBots = getCurrentBotCount();
   const targetBots = getTargetBotCount();
-  
+
+  // Check if bots are enabled by admin
+  if(!botsEnabled){
+    // Remove all bots if disabled
+    const aliveBots = entities.filter(e => e.isBot && e.alive);
+    for(const bot of aliveBots){
+      bot.alive = false;
+      bot.respawnAt = performance.now() + 999999999;
+    }
+    return;
+  }
+
   // Spawn bots if below target
   if(currentBots < targetBots && now - lastBotSpawnTime > BOT_CONFIG.BOT_SPAWN_INTERVAL){
     spawnBot();
     lastBotSpawnTime = now;
   }
-  
+
   // Despawn bots if above target
   if(currentBots > targetBots && now - lastBotDespawnTime > BOT_CONFIG.BOT_DESPAWN_INTERVAL){
     removeOldestBot();
@@ -4861,15 +4850,11 @@ function tickRecoilAndDash(t, dt){
 function update(dt){
   updateThreatMarkers();
   const now = performance.now();
-  
+
   // Update bot population dynamically
   if(mode === 'playing'){
     updateBotPopulation();
   }
-  
-  // Update dynamic bot population every 10 minutes
-  if(mode==='playing') updateBotPopulation();
-
   if(mode==='playing' && player.alive){
     const dashing = tickRecoilAndDash(player, dt);
     if(!dashing && !player.lidClosed){ // cannot move while lid is closed
@@ -6112,6 +6097,34 @@ function startGame(){
 
 // Initialize toilet skin on page load
 cycleSkin(0, true);
+
+// Admin console command system
+window.adminCommand = function(cmd){
+  if(!player || player.name !== ADMIN_NAME){
+    console.log('Access denied. Admin name required:', ADMIN_NAME);
+    return;
+  }
+
+  if(cmd === 'bots off'){
+    botsEnabled = false;
+    console.log('Bots DISABLED - all bots will leave and not respawn');
+    toast('Bots DISABLED');
+  } else if(cmd === 'bots on'){
+    botsEnabled = true;
+    console.log('Bots ENABLED - bots will respawn to normal levels');
+    toast('Bots ENABLED');
+  } else if(cmd === 'bots status'){
+    console.log('Bots enabled:', botsEnabled);
+    console.log('Current bot count:', entities.filter(e => e.isBot && e.alive).length);
+  } else {
+    console.log('Available commands:');
+    console.log('  adminCommand("bots off") - Disable all bots');
+    console.log('  adminCommand("bots on") - Enable bots');
+    console.log('  adminCommand("bots status") - Check bot status');
+  }
+};
+
+console.log('Admin system loaded. Join with name "' + ADMIN_NAME + '" to use commands.');
 </script>
 <script>
 /* ===================================================================
